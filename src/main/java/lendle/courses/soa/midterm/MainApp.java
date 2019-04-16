@@ -15,6 +15,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.Stage;
 import static javafx.application.Application.launch;
+import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollPane;
@@ -48,7 +49,21 @@ public class MainApp extends Application {
         //1. process recentList
         //1.1 (10%) create ObservableList and assign it to the items property of recentList
         //1.2 (20%)handle double click on recentList; on double-clicking, open the selected url (u have to distinguish between an image url and a web url)
-        
+        ObservableList<String> items = FXCollections.observableArrayList();
+        recentList.setItems(items);
+        recentList.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                if (event.getClickCount() == 2) {
+                    if (recentList.getSelectionModel().getSelectedItem().startsWith("http") == false) {
+                        openImageTab(primaryStage, recentList.getSelectionModel().getSelectedItem());
+                    } else {
+                        openWebTab(recentList.getSelectionModel().getSelectedItem());
+                    }
+
+                }
+            }
+        });
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         webButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -87,7 +102,7 @@ public class MainApp extends Application {
     private void openWebTab(String url) {
         BorderPane mainPane = new BorderPane();
         BorderPane addressPane = new BorderPane();
-        final TextField address = new TextField();
+        final TextField address = new TextField(url);
         Button goButton = new Button("GO");
         addressPane.setCenter(address);
         addressPane.setRight(goButton);
@@ -99,12 +114,22 @@ public class MainApp extends Application {
         //2.1 (10%) add it to a tab
         //2.2 (20%) handle action event on the goButton; goto to the url entered in address field
         //2.3 (10%) add the url to recentList via recentList.getItems()
+        tabPane.getTabs().add(new Tab("Browser", mainPane));
+        webView.getEngine().load(url);
+        goButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                webView.getEngine().load(address.getText());
+                recentList.getItems().add(address.getText());
+            }
+        });
     }
 
     private void openImageTab(Stage stage, String url) {
         if (url == null) {
             //3. (20%) open a fileChooser to allow the user to select a local image file
             //////////////////////////////////////////////////////////////////////
+            FileChooser fileChooser = new FileChooser();
             File file = fileChooser.showOpenDialog(stage);
             if (file != null) {
                 url = file.toURI().toString();
@@ -115,7 +140,9 @@ public class MainApp extends Application {
         }
         if (url != null) {
             //4. (10%) load the image into a imageView
-            
+            Image img = new Image(url);
+            ImageView imageView = new ImageView(img);
+
             ///////////////////////////////////////////
             ScrollPane scrollPane = new ScrollPane(imageView);
             tabPane.getTabs().add(new Tab(url, scrollPane));
